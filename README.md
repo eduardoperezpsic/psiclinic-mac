@@ -1,19 +1,35 @@
-# PsiClinic Mac — Apple Silicon portable
+# PsiClinic para Mac
 
-Edición nativa de PsiClinic para Mac con chip M1 y posteriores. Requiere macOS 13 Ventura o posterior. No requiere Rosetta, instalador, Node.js ni SQLite instalados por separado.
+Desarrollé PsiClinic para organizar expedientes, notas de sesión, agenda, documentos y familiogramas en la consulta psicológica.
 
-## Descarga
+**Psic. Eduardo Pérez Cervantes**
 
-[Descargar la última versión de PsiClinic Mac](https://github.com/eduardoperezpsic/psiclinic-mac/releases/latest)
+## Descargar
 
-La primera versión es 1.5.13, adaptada de PsiClinic Premium 1.5.13. Descarga el ZIP cuyo nombre termina en Apple-Silicon-Portable.zip; la suma SHA-256 y las instrucciones se incluyen en la publicación.
+[Descargar la última versión para Mac](https://github.com/eduardoperezpsic/psiclinic-mac/releases/latest)
 
-## Uso portable
+Necesitas un Mac con chip Apple Silicon (M1 o posterior) y macOS 13 o posterior. Puedes utilizar el programa gratuitamente.
 
-1. Descomprime el ZIP y mueve PsiClinic Mac.app con Finder a una carpeta local con permisos de escritura, fuera de carpetas sincronizadas con la nube.
-2. Abre PsiClinic Mac.app. El programa creará PsiClinic Mac Datos junto a la aplicación.
-3. Para trasladarlo, cierra PsiClinic y copia juntos el .app y PsiClinic Mac Datos. No borres ni separes esa carpeta. Al cambiar de Mac puede ser necesario volver a iniciar sesión.
+1. Descarga el ZIP que termina en **Apple-Silicon-Portable.zip**.
+2. Descomprímelo y mueve **PsiClinic Mac.app** con Finder a una carpeta local con permisos de escritura, fuera de carpetas sincronizadas.
+3. Abre la aplicación, crea tu cuenta y guarda el código de recuperación fuera de la computadora.
 
-El programa usa firma ad hoc y no está notarizado por Apple. Si macOS bloquea la primera apertura, comprueba el origen de la descarga y usa Configuración del Sistema > Privacidad y seguridad > Abrir de todos modos. No requiere desactivar Gatekeeper. [Instrucciones de Apple](https://support.apple.com/es-mx/102445).
+Si macOS bloquea la primera apertura, comprueba el origen de la descarga y consulta **Configuración del Sistema > Privacidad y seguridad > Abrir de todos modos**. Esta edición no está notarizada por Apple. No desactives Gatekeeper.
 
-Para recuperar una sesión de Windows o de la edición Mac anterior, exporta un respaldo .psibackup desde el programa de origen y usa Restaurar una sesión en PsiClinic Mac. Conserva el original hasta comprobar la restauración.
+## Tus expedientes y respaldos
+
+El programa crea **PsiClinic Mac Datos** junto a la aplicación. Conserva esa carpeta y no la borres al actualizar. Para trasladar tu trabajo, cierra PsiClinic y copia juntos la aplicación y su carpeta de datos.
+
+También puedes exportar un respaldo desde PsiClinic y usar **Restaurar una sesión** en el equipo de destino. Conserva el original hasta comprobar la restauración. Al cambiar de Mac puede ser necesario iniciar sesión de nuevo.
+
+La información se guarda cifrada. Sin la contraseña o el código de recuperación no puedo recuperar tus expedientes.
+
+## Actualizar
+
+Usa **Buscar actualizaciones** dentro del programa. Cuando la descarga esté lista, cierra PsiClinic normalmente y espera a que vuelva a abrirse. Guarda antes una copia externa de tus datos.
+
+## Soporte
+
+Escríbeme a **eduardoperez.psic@gmail.com** con la versión del programa, tu versión de macOS y los pasos que producen el problema. Utiliza datos ficticios en las capturas y no envíes expedientes, contraseñas ni códigos de recuperación.
+
+[PsiClinic para Windows](https://github.com/eduardoperezpsic/psiclinic-updates)
