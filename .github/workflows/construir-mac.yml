@@ -1,0 +1,93 @@
+# Construye y prueba PsiClinic Mac en equipos Mac reales de GitHub Actions.
+# Vive en el repositorio público psiclinic-mac: ahí estos equipos son gratuitos y no gastan
+# la cuota del repositorio privado. Copia de herramientas/publicacion/construir-mac.yml.
+# Solo lo lanza quien tiene permiso de escritura. Los registros son públicos: nada se
+# imprime del escenario ni del cliente de Google.
+name: Construir PsiClinic Mac
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Versión del borrador (por ejemplo 1.5.20)
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: construir-mac
+  cancel-in-progress: false
+
+env:
+  VERSION: ${{ inputs.version }}
+  GH_TOKEN: ${{ github.token }}
+  CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+
+jobs:
+  construir:
+    runs-on: macos-15
+    timeout-minutes: 90
+    steps:
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '24'
+      - name: Obtener el escenario
+        run: |
+          [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
+          gh release download "mac-v$VERSION" --repo "$GITHUB_REPOSITORY" --pattern escenario-mac.tgz --dir "$RUNNER_TEMP"
+          tar -xzf "$RUNNER_TEMP/escenario-mac.tgz" -C "$GITHUB_WORKSPACE"
+          rm -f "$RUNNER_TEMP/escenario-mac.tgz"
+      - name: Instalar y compilar el módulo nativo para Electron en ARM64
+        run: npm ci
+      - name: Empaquetar el candidato
+        run: |
+          npx electron-builder --mac zip --arm64 --publish never --config electron-builder-mac.js
+          mkdir -p "$RUNNER_TEMP/salida"
+          mv "dist/PsiClinic-Mac-$VERSION-Apple-Silicon-Portable.zip" "$RUNNER_TEMP/salida/"
+      - name: Empaquetar una versión siguiente, solo para probar actualizaciones
+        run: |
+          SIGUIENTE="$(node -p "process.env.VERSION.replace(/\d+$/, (n) => Number(n) + 1)")"
+          echo "SIGUIENTE=$SIGUIENTE" >> "$GITHUB_ENV"
+          npx electron-builder --mac zip --arm64 --publish never --config electron-builder-mac.js -c.extraMetadata.version="$SIGUIENTE"
+          mv "dist/PsiClinic-Mac-$SIGUIENTE-Apple-Silicon-Portable.zip" "$RUNNER_TEMP/salida/prueba-siguiente.zip"
+      - name: Probar en macOS 15
+        run: |
+          node pruebas/mac/prueba-paquete-mac.cjs --candidato "$RUNNER_TEMP/salida/PsiClinic-Mac-$VERSION-Apple-Silicon-Portable.zip" --siguiente "$RUNNER_TEMP/salida/prueba-siguiente.zip" --salida "$RUNNER_TEMP/salida/mac15"
+      - name: Subir evidencia al borrador, incluso si una prueba falla
+        if: always()
+        run: |
+          [ -f "$RUNNER_TEMP/salida/mac15/evidencia-mac.json" ] && cp "$RUNNER_TEMP/salida/mac15/evidencia-mac.json" "$RUNNER_TEMP/salida/evidencia-macos15.json" && gh release upload "mac-v$VERSION" "$RUNNER_TEMP/salida/evidencia-macos15.json" --repo "$GITHUB_REPOSITORY" --clobber
+          [ -f "$RUNNER_TEMP/salida/mac15/pantalla.png" ] && cp "$RUNNER_TEMP/salida/mac15/pantalla.png" "$RUNNER_TEMP/salida/pantalla-macos15.png" && gh release upload "mac-v$VERSION" "$RUNNER_TEMP/salida/pantalla-macos15.png" --repo "$GITHUB_REPOSITORY" --clobber
+          true
+      - name: Subir el candidato al borrador
+        run: |
+          cd "$RUNNER_TEMP/salida"
+          ZIP="PsiClinic-Mac-$VERSION-Apple-Silicon-Portable.zip"
+          printf '%s *%s\n' "$(shasum -a 256 "$ZIP" | cut -d' ' -f1 | tr '[:lower:]' '[:upper:]')" "$ZIP" > "SHA256SUMS-Mac-$VERSION.txt"
+          cp "$GITHUB_WORKSPACE/build/LEEME-MAC.txt" "LEEME-PsiClinic-Mac-$VERSION.txt"
+          gh release upload "mac-v$VERSION" "$ZIP" "SHA256SUMS-Mac-$VERSION.txt" "LEEME-PsiClinic-Mac-$VERSION.txt" prueba-siguiente.zip --repo "$GITHUB_REPOSITORY" --clobber
+
+  compatibilidad-macos14:
+    needs: construir
+    runs-on: macos-14
+    timeout-minutes: 45
+    steps:
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '24'
+      - name: Obtener paquetes y herramientas de prueba
+        run: |
+          gh release download "mac-v$VERSION" --repo "$GITHUB_REPOSITORY" --pattern escenario-mac.tgz --pattern "PsiClinic-Mac-$VERSION-Apple-Silicon-Portable.zip" --pattern prueba-siguiente.zip --dir "$RUNNER_TEMP"
+          tar -xzf "$RUNNER_TEMP/escenario-mac.tgz" -C "$GITHUB_WORKSPACE"
+          rm -f "$RUNNER_TEMP/escenario-mac.tgz"
+          npm ci --ignore-scripts
+      - name: Probar en macOS 14
+        run: |
+          node pruebas/mac/prueba-paquete-mac.cjs --candidato "$RUNNER_TEMP/PsiClinic-Mac-$VERSION-Apple-Silicon-Portable.zip" --siguiente "$RUNNER_TEMP/prueba-siguiente.zip" --salida "$RUNNER_TEMP/mac14"
+      - name: Subir evidencia al borrador, incluso si una prueba falla
+        if: always()
+        run: |
+          [ -f "$RUNNER_TEMP/mac14/evidencia-mac.json" ] && cp "$RUNNER_TEMP/mac14/evidencia-mac.json" "$RUNNER_TEMP/evidencia-macos14.json" && gh release upload "mac-v$VERSION" "$RUNNER_TEMP/evidencia-macos14.json" --repo "$GITHUB_REPOSITORY" --clobber
+          true
