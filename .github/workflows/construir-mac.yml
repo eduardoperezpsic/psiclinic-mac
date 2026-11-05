@@ -12,6 +12,11 @@ on:
         description: Versión del borrador (por ejemplo 1.5.20)
         required: true
         type: string
+      solo_compatibilidad:
+        description: Probar en macOS 26 el candidato que ya está en el borrador, sin construirlo de nuevo
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   contents: write
@@ -27,6 +32,7 @@ env:
 
 jobs:
   construir:
+    if: ${{ !inputs.solo_compatibilidad }}
     runs-on: macos-15
     timeout-minutes: 90
     steps:
@@ -69,9 +75,11 @@ jobs:
           cp "$GITHUB_WORKSPACE/build/LEEME-MAC.txt" "LEEME-PsiClinic-Mac-$VERSION.txt"
           gh release upload "mac-v$VERSION" "$ZIP" "SHA256SUMS-Mac-$VERSION.txt" "LEEME-PsiClinic-Mac-$VERSION.txt" prueba-siguiente.zip --repo "$GITHUB_REPOSITORY" --clobber
 
-  compatibilidad-macos14:
+  # GitHub retiró macOS 14 el 2 de noviembre de 2026; la segunda versión de prueba es macOS 26.
+  compatibilidad-macos26:
     needs: construir
-    runs-on: macos-14
+    if: ${{ always() && (needs.construir.result == 'success' || (inputs.solo_compatibilidad && needs.construir.result == 'skipped')) }}
+    runs-on: macos-26
     timeout-minutes: 45
     steps:
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
@@ -83,11 +91,11 @@ jobs:
           tar -xzf "$RUNNER_TEMP/escenario-mac.tgz" -C "$GITHUB_WORKSPACE"
           rm -f "$RUNNER_TEMP/escenario-mac.tgz"
           npm ci --ignore-scripts
-      - name: Probar en macOS 14
+      - name: Probar en macOS 26
         run: |
-          node pruebas/mac/prueba-paquete-mac.cjs --candidato "$RUNNER_TEMP/PsiClinic-Mac-$VERSION-Apple-Silicon-Portable.zip" --siguiente "$RUNNER_TEMP/prueba-siguiente.zip" --salida "$RUNNER_TEMP/mac14"
+          node pruebas/mac/prueba-paquete-mac.cjs --candidato "$RUNNER_TEMP/PsiClinic-Mac-$VERSION-Apple-Silicon-Portable.zip" --siguiente "$RUNNER_TEMP/prueba-siguiente.zip" --salida "$RUNNER_TEMP/mac26"
       - name: Subir evidencia al borrador, incluso si una prueba falla
         if: always()
         run: |
-          [ -f "$RUNNER_TEMP/mac14/evidencia-mac.json" ] && cp "$RUNNER_TEMP/mac14/evidencia-mac.json" "$RUNNER_TEMP/evidencia-macos14.json" && gh release upload "mac-v$VERSION" "$RUNNER_TEMP/evidencia-macos14.json" --repo "$GITHUB_REPOSITORY" --clobber
+          [ -f "$RUNNER_TEMP/mac26/evidencia-mac.json" ] && cp "$RUNNER_TEMP/mac26/evidencia-mac.json" "$RUNNER_TEMP/evidencia-macos26.json" && gh release upload "mac-v$VERSION" "$RUNNER_TEMP/evidencia-macos26.json" --repo "$GITHUB_REPOSITORY" --clobber
           true
